@@ -19,5 +19,19 @@ func main() {
 		}
 		return c.JSON(http.StatusOK, raw)
 	})
+
+	e.GET("/create-test", func(c echo.Context) error {
+		// note := Note{
+		// 	id:         "1",
+		// 	title:      "Title",
+		// 	content:    "description",
+		// 	remindDate: "2021-01-01",
+		// 	createdAt:  "2021-01-01",
+		// 	updatedAt:  "2021-01-01",
+		// }
+		note := GetNote("2")
+		return c.JSON(http.StatusOK, note)
+	})
+
 	e.Logger.Fatal(e.Start(":8000"))
 }
