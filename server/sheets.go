@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -139,7 +138,7 @@ func getLastId() int {
 	return len(resp.Values)
 }
 
-func SheetProcess() []byte {
+func GetNotes() []Note {
 	sheetsService := getClient()
 
 	resp, err := sheetsService.Spreadsheets.Values.Get(spreadsheetID, readRange).Context(context.Background()).Do()
@@ -148,7 +147,18 @@ func SheetProcess() []byte {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
 	}
 
-	data, _ := json.Marshal(resp.Values)
+	var notes []Note
 
-	return data
+	for _, row := range resp.Values {
+		notes = append(notes, Note{
+			Id:         row[0].(string),
+			Title:      row[1].(string),
+			Content:    row[2].(string),
+			RemindDate: row[3].(string),
+			CreatedAt:  row[4].(string),
+			UpdatedAt:  row[5].(string),
+		})
+	}
+
+	return notes
 }
