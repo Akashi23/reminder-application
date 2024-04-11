@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -18,17 +19,52 @@ func main() {
 		return c.JSON(http.StatusOK, data)
 	})
 
-	e.GET("/create-test", func(c echo.Context) error {
-		// note := Note{
-		// 	id:         "1",
-		// 	title:      "Title",
-		// 	content:    "description",
-		// 	remindDate: "2021-01-01",
-		// 	createdAt:  "2021-01-01",
-		// 	updatedAt:  "2021-01-01",
-		// }
-		note := GetNote("2")
+	e.GET("/notes", func(c echo.Context) error {
+		data := GetNotes()
+		return c.JSON(http.StatusOK, data)
+	})
+
+	e.POST("/notes", func(c echo.Context) error {
+		note := new(Note)
+		if err := c.Bind(note); err != nil {
+			return err
+		}
+
+		note.CreatedAt = time.Now().String()
+		note.UpdatedAt = time.Now().String()
+
+		CreateNote(*note)
+
+		return c.JSON(http.StatusCreated, note)
+	})
+
+	e.GET("/notes/:id", func(c echo.Context) error {
+		id := c.Param("id")
+		data := GetNote(id)
+		return c.JSON(http.StatusOK, data)
+	})
+
+	e.PUT("/notes/:id", func(c echo.Context) error {
+		id := c.Param("id")
+		note := new(Note)
+		if err := c.Bind(note); err != nil {
+			return err
+		}
+
+		note.Id = id
+
+		note.UpdatedAt = time.Now().String()
+
+		UpdateNote(*note)
+
 		return c.JSON(http.StatusOK, note)
+
+	})
+
+	e.DELETE("/notes/:id", func(c echo.Context) error {
+		id := c.Param("id")
+		DeleteNote(id)
+		return c.NoContent(http.StatusNoContent)
 	})
 
 	e.Logger.Fatal(e.Start(":8000"))
