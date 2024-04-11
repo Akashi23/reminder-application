@@ -13,6 +13,9 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.KeyAuth(func(key string, c echo.Context) (bool, error) {
+		return key == "123", nil
+	}))
 
 	e.GET("/", func(c echo.Context) error {
 		data := GetNotes()
