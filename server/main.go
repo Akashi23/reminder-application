@@ -16,8 +16,11 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(middleware.KeyAuth(func(key string, c echo.Context) (bool, error) {
-		return key == "123", nil
+	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
+		KeyLookup: "query:api-key",
+		Validator: func(key string, c echo.Context) (bool, error) {
+			return key == "123", nil
+		},
 	}))
 	e.GET("/ws", sendRemind)
 
