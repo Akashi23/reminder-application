@@ -103,7 +103,9 @@ func UpdateNote(note Note) Note {
 
 	for i, row := range resp.Values {
 		if row[0] == note.Id {
-			resp.Values[i] = []interface{}{note.Id, note.Title, note.Content, note.RemindDate, note.CreatedAt, note.UpdatedAt}
+			createdAt := resp.Values[i][4].(string)
+			resp.Values[i] = []interface{}{note.Id, note.Title, note.Content, note.RemindDate, createdAt, note.UpdatedAt}
+			note.CreatedAt = createdAt
 		}
 	}
 
@@ -123,10 +125,48 @@ func UpdateNote(note Note) Note {
 func DeleteNote(id string) Note {
 	sheetsService := getClient()
 
-	_, err := sheetsService.Spreadsheets.Values.Clear(spreadsheetID, readRange, &sheets.ClearValuesRequest{}).Context(context.Background()).Do()
+	resp, err := sheetsService.Spreadsheets.Values.Get(spreadsheetID, readRange).Context(context.Background()).Do()
 
 	if err != nil {
-		log.Fatalf("Unable to delete data from sheet: %v", err)
+		log.Fatalf("Unable to retrieve data from sheet: %v", err)
+	}
+
+	for i, row := range resp.Values {
+		if row[0] == id {
+			resp.Values = append(resp.Values[:i], resp.Values[i+1:]...)
+		}
+	}
+
+	valueRange := &sheets.ValueRange{
+		Values: resp.Values,
+	}
+
+	_, err = sheetsService.Spreadsheets.Values.Update(spreadsheetID, readRange, valueRange).ValueInputOption("RAW").Context(context.Background()).Do()
+	if err != nil {
+		log.Fatalf("Unable to write data to sheet: %v", err)
+	}
+
+	resp, err = sheetsService.Spreadsheets.Values.Get(spreadsheetID, readRange).Context(context.Background()).Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve data from sheet: %v", err)
+	}
+
+	for i, row := range resp.Values {
+		row[0] = fmt.Sprint(i + 1)
+	}
+
+	lastId := getLastId() - 1
+
+	resp.Values[lastId] = []interface{}{"", "", "", "", "", ""}
+
+	valueRange = &sheets.ValueRange{
+		Values: resp.Values,
+	}
+
+	_, err = sheetsService.Spreadsheets.Values.Update(spreadsheetID, readRange, valueRange).ValueInputOption("RAW").Context(context.Background()).Do()
+
+	if err != nil {
+		log.Fatalf("Unable to write data to sheet: %v", err)
 	}
 
 	return Note{}
