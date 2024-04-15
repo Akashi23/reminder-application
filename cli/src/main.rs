@@ -1,21 +1,6 @@
-use serde_aux::prelude::*;
-use serde_json;
-use std::error::Error;
+mod notes;
 
 use clap::Parser;
-use reqwest::Url;
-
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Note {
-    #[serde(deserialize_with = "deserialize_number_from_string")]
-    id: i32,
-    title: String,
-    content: String,
-    remind_date: String,
-    created_at: String,
-    updated_at: String,
-}
 
 /// Search for a pattern in a file and display the lines that contain it.
 #[derive(Parser)]
@@ -28,21 +13,10 @@ struct Cli {
 
 fn main() {
     let args = Cli::parse();
-    get_notes();
-    println!("pattern: {:?}, path: {:?}", args.pattern, args.path)
-}
-
-fn get_notes() -> Result<(), Box<dyn Error>> {
-    let url = Url::parse("http://localhost:8000/notes")?;
-    let client = reqwest::blocking::Client::new();
-    let resp = client
-        .get(url)
-        .query(&[("api-key", "123")])
-        .send()
-        .unwrap()
-        .text()?;
-
-    let notes: Vec<Note> = serde_json::from_str(&resp).unwrap();
+    // let notes = notes::update_note(10, "title 10", "Con", "2024/16/04");
+    // let notes = notes::create_note("ti", "contentdsa1212", "2024/16/04");
+    let notes = notes::get_notes().unwrap();
+    // let notes = notes::delete_note(5);
+    println!("pattern: {:?}, path: {:?}", args.pattern, args.path);
     println!("{:?}", notes);
-    Ok(())
 }
