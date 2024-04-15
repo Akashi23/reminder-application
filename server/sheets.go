@@ -72,7 +72,7 @@ func GetNote(id string) Note {
 	return Note{}
 }
 
-func CreateNote(note Note) {
+func CreateNote(note Note) Note {
 	sheetsService := getClient()
 
 	note.Id = fmt.Sprint(getLastId() + 1)
@@ -88,9 +88,11 @@ func CreateNote(note Note) {
 	if err != nil {
 		log.Fatalf("Unable to write data to sheet: %v", err)
 	}
+
+	return note
 }
 
-func UpdateNote(note Note) {
+func UpdateNote(note Note) Note {
 	sheetsService := getClient()
 
 	resp, err := sheetsService.Spreadsheets.Values.Get(spreadsheetID, readRange).Context(context.Background()).Do()
@@ -114,9 +116,11 @@ func UpdateNote(note Note) {
 	if err != nil {
 		log.Fatalf("Unable to write data to sheet: %v", err)
 	}
+
+	return note
 }
 
-func DeleteNote(id string) {
+func DeleteNote(id string) Note {
 	sheetsService := getClient()
 
 	_, err := sheetsService.Spreadsheets.Values.Clear(spreadsheetID, readRange, &sheets.ClearValuesRequest{}).Context(context.Background()).Do()
@@ -124,6 +128,8 @@ func DeleteNote(id string) {
 	if err != nil {
 		log.Fatalf("Unable to delete data from sheet: %v", err)
 	}
+
+	return Note{}
 }
 
 func getLastId() int {

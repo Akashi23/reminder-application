@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"golang.org/x/net/websocket"
 )
 
 func main() {
@@ -16,6 +16,10 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
 	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
 		KeyLookup: "query:api-key",
 		Validator: func(key string, c echo.Context) (bool, error) {
@@ -43,9 +47,9 @@ func main() {
 		note.CreatedAt = time.Now().String()
 		note.UpdatedAt = time.Now().String()
 
-		CreateNote(*note)
+		newNote := CreateNote(*note)
 
-		return c.JSON(http.StatusCreated, note)
+		return c.JSON(http.StatusCreated, newNote)
 	})
 
 	e.GET("/notes/:id", func(c echo.Context) error {
@@ -65,9 +69,9 @@ func main() {
 
 		note.UpdatedAt = time.Now().String()
 
-		UpdateNote(*note)
+		updatedNote := UpdateNote(*note)
 
-		return c.JSON(http.StatusOK, note)
+		return c.JSON(http.StatusOK, updatedNote)
 
 	})
 
@@ -80,40 +84,48 @@ func main() {
 	e.Logger.Fatal(e.Start(":8000"))
 }
 
+var (
+	upgrader = websocket.Upgrader{}
+)
+
 func sendRemind(c echo.Context) error {
-	websocket.Handler(func(ws *websocket.Conn) {
-		defer ws.Close()
-		for {
-			// Write
-			err := websocket.Message.Send(ws, "Hello, Client!")
-			if err != nil {
-				c.Logger().Error(err)
-			}
+	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		return err
+	}
+	defer ws.Close()
 
-			go CheckRemind(ws)
-
-			// Read
-			msg := ""
-			err = websocket.Message.Receive(ws, &msg)
-			if err != nil {
-				c.Logger().Error(err)
-			}
-			fmt.Printf("%s\n", msg)
+	for {
+		// Write
+		err := ws.WriteMessage(websocket.TextMessage, []byte("Connected to server!"))
+		if err != nil {
+			c.Logger().Error(err)
 		}
-	}).ServeHTTP(c.Response(), c.Request())
-	return nil
+
+		go CheckRemind(ws, c)
+
+		// Read
+		_, msg, err := ws.ReadMessage()
+		if err != nil {
+			c.Logger().Error(err)
+		}
+		fmt.Printf("%s\n", msg)
+	}
 }
 
-func CheckRemind(ws *websocket.Conn) {
+func CheckRemind(ws *websocket.Conn, c echo.Context) {
 	for {
 		notes := GetNotes()
 		for _, note := range notes {
-			if note.RemindDate == time.Now().String() {
+			if note.RemindDate == time.Now().Format("2006/01/02") {
 				sendNote, err := json.Marshal(note)
 				if err != nil {
 					fmt.Println(err)
 				} else {
-					websocket.Message.Send(ws, string(sendNote))
+					err := ws.WriteMessage(websocket.TextMessage, []byte(string(sendNote)))
+					if err != nil {
+						c.Logger().Error(err)
+					}
 				}
 			}
 		}
