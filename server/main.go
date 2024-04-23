@@ -23,7 +23,7 @@ func main() {
 	e.Use(middleware.KeyAuthWithConfig(middleware.KeyAuthConfig{
 		KeyLookup: "query:api-key",
 		Validator: func(key string, c echo.Context) (bool, error) {
-			return key == "123", nil
+			return key == GetEnv("API_KEY"), nil
 		},
 	}))
 	e.GET("/ws", sendRemind)
@@ -81,7 +81,7 @@ func main() {
 		return c.NoContent(http.StatusNoContent)
 	})
 
-	e.Logger.Fatal(e.Start(":8000"))
+	e.Logger.Fatal(e.Start(":" + GetEnv("PORT")))
 }
 
 var (

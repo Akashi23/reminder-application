@@ -20,10 +20,10 @@ type Note struct {
 	UpdatedAt  string `json:"updatedAt"`
 }
 
-const (
-	spreadsheetID = "1XySA2jWwkUU4FLqHGFQGfxHpg6LmDI5TTqLMHNYKcJs"
+var (
+	spreadsheetID = GetEnv("SPREADSHEET_ID")
 	readRange     = "Sheet1!A:F"
-	credentials   = "key.json"
+	credentials   = GetEnv("CREDENTIALS")
 )
 
 func getClient() *sheets.Service {
@@ -172,18 +172,6 @@ func DeleteNote(id string) Note {
 	return Note{}
 }
 
-func getLastId() int {
-	sheetsService := getClient()
-
-	resp, err := sheetsService.Spreadsheets.Values.Get(spreadsheetID, readRange).Context(context.Background()).Do()
-
-	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet: %v", err)
-	}
-
-	return len(resp.Values)
-}
-
 func GetNotes() []Note {
 	sheetsService := getClient()
 
@@ -207,4 +195,16 @@ func GetNotes() []Note {
 	}
 
 	return notes
+}
+
+func getLastId() int {
+	sheetsService := getClient()
+
+	resp, err := sheetsService.Spreadsheets.Values.Get(spreadsheetID, readRange).Context(context.Background()).Do()
+
+	if err != nil {
+		log.Fatalf("Unable to retrieve data from sheet: %v", err)
+	}
+
+	return len(resp.Values)
 }
